@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "tokens.h"
 
 
 int Check_if_limits(char *arg)
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
 		char *out_name;
 
     /* Sanity check */
-    if (argc < 2)
+    if (argc < 3)
     {
         printf("Not enough parameters!\n");
         printf("Usage: %s <equation> <output file> [<limits>]\n", argv[0]);
@@ -39,6 +40,8 @@ int main(int argc, char *argv[])
 
     printf("limits: %d\n", limits);
 		printf("out file: %s\n", out_name);
+
+		tokenize(argv, argc, limits / 3);
     return EXIT_SUCCESS;
 }
 
