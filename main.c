@@ -42,6 +42,6 @@ int main(int argc, char *argv[])
 		printf("out file: %s\n", out_name);
 
 		tokenize(argv, argc, limits / 3);
-    return EXIT_SUCCESS;
+    return 0;
 }
 
