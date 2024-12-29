@@ -1,3 +1,4 @@
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "tokens.h"
@@ -19,6 +20,8 @@ int main(int argc, char *argv[])
 {
     int limits = 0;
 		char *out_name;
+
+		setlocale(LC_NUMERIC, "C");
 
     /* Sanity check */
     if (argc < 3)
