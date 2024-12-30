@@ -1,6 +1,7 @@
 #include "tokens.h"
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define VAR 'x'
@@ -33,13 +34,14 @@ int remove_spaces(char *str) {
   return 0;
 }
 
-int prepare(char **expr, int size, int limits) {
+char *prepare(char **expr, int size, int limits) {
   int len = 0;
   int i;
+	char *concat;
   for (i = 1; i < size - limits - 1; i++) {
     len += strlen(expr[i]);
   }
-  char concat[len];
+  concat = (char *) malloc(sizeof(char) * len);
   for (i = 1; i < size - limits - 1; i++) {
     strcat(concat, expr[i]);
   }
@@ -54,7 +56,7 @@ int prepare(char **expr, int size, int limits) {
     printf("%d\n", concat[i]);
   }
 
-  return 0;
+  return concat;
 }
 
 int is_var(char *p) { return *p == VAR; }
@@ -138,14 +140,79 @@ int is_function(char *str) {
   for (i = 0; i < sizeof(functions) / sizeof(functions[0]); i++) {
     if (strcmp(str, functions[i]) == 0) {
       return strlen(
-          functions[i]); // Return 1 if the string matches a function name
+          functions[i]); /* Return 1 if the string matches a function name */
     }
   }
-  return 0; // Return 0 if no match is found
+  return 0; /* Return 0 if no match is found */
 }
 
 int tokenize(char *expr[], int size, int limits, Token **result) {
-  char *p;
   int unknown = 0;
+	int free_index = 0;
+	char *concat = prepare(expr, size, limits);
+	char *p = concat;
+	int func_len = 0;
+	int num_len = 0;
+	int i;
+
+	*result = (Token *)(malloc(sizeof(Token) * strlen(concat)));
+	if (*result == NULL) return 1;
+	while (*p != '\0')
+	{
+		func_len = is_function(p);
+		num_len = is_number(p);
+
+
+		if (is_var(p)){
+			result[free_index]->type = TOKEN_VARIABLE;
+			result[free_index]->value[0] = 'x';
+			result[free_index]->value[1] = '\0';
+			p++;
+			free_index++;
+		}
+		else if (is_operator(p))
+		{
+			if (free_index == 0 && *p == '-')
+			{
+				result[free_index]->type = TOKEN_UNARY_OPERATOR;
+			}
+			else if (is_unary_minus(p, result[free_index - 1]))
+			{
+				result[free_index]->type = TOKEN_UNARY_OPERATOR;
+			}
+			else {
+				result[free_index]->type = TOKEN_BINARY_OPERATOR;
+			}
+			result[free_index]->value[0] = *p;
+			result[free_index]->value[1] = '\0';
+			p++;
+			free_index++;
+		}
+		else if (func_len)
+		{
+			result[free_index]->type = TOKEN_FUNCTION;
+			for (i = 0; i < func_len; i++)
+			{
+				result[free_index]->value[i] = *p;
+				p++;
+			}
+			result[free_index]->value[func_len] = '\0';
+			free_index++;
+		}
+		else if (num_len)
+		{
+			result[free_index]->type = TOKEN_NUMBER;
+			for (i = 0; i < func_len; i++)
+			{
+				result[free_index]->value[i] = *p;
+				p++;
+			}
+			result[free_index]->value[func_len] = '\0';
+			free_index++;
+		}
+		else unknown++;
+	}
+	free(concat);
+	if (unknown) return 1;
 	return 0;
 }
