@@ -136,7 +136,7 @@ int is_number(char *str) {
 int is_function(char *str) {
   int i;
   const char *functions[] = FUNCTIONS;
-  // Loop through the array of function names
+  /* Loop through the array of function names */
   for (i = 0; i < sizeof(functions) / sizeof(functions[0]); i++) {
     if (strcmp(str, functions[i]) == 0) {
       return strlen(
@@ -146,6 +146,7 @@ int is_function(char *str) {
   return 0; /* Return 0 if no match is found */
 }
 
+/* returns count of tokens if positive, error code if negative */
 int tokenize(char *expr[], int size, int limits, Token **result) {
   int unknown = 0;
 	int free_index = 0;
@@ -155,15 +156,19 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
 	int num_len = 0;
 	int i;
 
+	printf("tokenize...%s\n", concat);
+
 	*result = (Token *)(malloc(sizeof(Token) * strlen(concat)));
-	if (*result == NULL) return 1;
+	if (*result == NULL) return -1;
 	while (*p != '\0')
 	{
+		printf("%c - %d\n", *p, free_index);
 		func_len = is_function(p);
 		num_len = is_number(p);
 
 
 		if (is_var(p)){
+			printf("Variable\n");
 			result[free_index]->type = TOKEN_VARIABLE;
 			result[free_index]->value[0] = 'x';
 			result[free_index]->value[1] = '\0';
@@ -172,6 +177,7 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
 		}
 		else if (is_operator(p))
 		{
+			printf("Operator\n");
 			if (free_index == 0 && *p == '-')
 			{
 				result[free_index]->type = TOKEN_UNARY_OPERATOR;
@@ -190,6 +196,7 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
 		}
 		else if (func_len)
 		{
+			printf("Function len %d", func_len);
 			result[free_index]->type = TOKEN_FUNCTION;
 			for (i = 0; i < func_len; i++)
 			{
@@ -201,6 +208,7 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
 		}
 		else if (num_len)
 		{
+			printf("Number len %d\n", num_len);
 			result[free_index]->type = TOKEN_NUMBER;
 			for (i = 0; i < func_len; i++)
 			{
@@ -213,6 +221,7 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
 		else unknown++;
 	}
 	free(concat);
-	if (unknown) return 1;
-	return 0;
+	if (unknown) return -2;
+	printf("Len %d", free_index);
+	return free_index;
 }

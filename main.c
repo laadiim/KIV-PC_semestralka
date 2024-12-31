@@ -21,6 +21,8 @@ int main(int argc, char *argv[])
     int limits = 0;
 		char *out_name;
 		Token **token_arr;
+		int token_count;
+		int i;
 
 		setlocale(LC_NUMERIC, "C");
 
@@ -45,8 +47,16 @@ int main(int argc, char *argv[])
     printf("limits: %d\n", limits);
 		printf("out file: %s\n", out_name);
 
-		tokenize(argv, argc, limits / 3, token_arr);
+		token_count = tokenize(argv, argc, limits / 3, token_arr);
+		printf("%d", token_count);
 		/* print tokens */
+		if (token_count > 0)
+		{
+			for (i = 0; i < token_count; i++)
+			{
+				printf("%s\n", (*token_arr)[i].value);
+			}
+		}
     return 0;
 }
 
