@@ -6,6 +6,7 @@ typedef enum {
     TOKEN_NUMBER,    /* Numeric constants (e.g., 3.14, 42) */
     TOKEN_VARIABLE,  /* Variable (e.g., 'x') */
     TOKEN_BINARY_OPERATOR,  /* Operators (e.g., +, -, *, /, ^) */
+		TOKEN_PARENTHESIS,
     TOKEN_FUNCTION,  /* Functions (e.g., sin, cos, exp) */
 		TOKEN_UNARY_OPERATOR, /* Unary '-' */
     TOKEN_UNKNOWN    /* Any unrecognized token */

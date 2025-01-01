@@ -4,11 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_TOKENS 256
 #define VAR 'x'
-#define OPS "+-*/^()"
-#define FUNCTIONS                                                              \
-  {"sin",  "cos",  "tan", "asin", "acos", "atan", "sinh",                      \
-   "cosh", "tanh", "abs", "exp",  "ln",   "log"}
+#define OPS "+-*/^"
+#define FUNCTIONS {"asin", "acos", "atan", "sinh", "cosh", "tanh", "sin",  "cos",  "tan",  "abs", "exp",  "log", "ln"}
 
 int remove_spaces(char *str) {
   int i = 0, j = 0;
@@ -37,23 +36,43 @@ int remove_spaces(char *str) {
 char *prepare(char **expr, int size, int limits) {
   int len = 0;
   int i;
-	char *concat;
+
+  /* Calculate the total length of the concatenated string */
   for (i = 1; i < size - limits - 1; i++) {
     len += strlen(expr[i]);
   }
-  concat = (char *) malloc(sizeof(char) * len);
+
+  /* Allocate memory for the concatenated string (+1 for null terminator) */
+  char *concat;
+  concat = (char *)malloc(sizeof(char) * (len + 1));
+  if (concat == NULL) {
+    printf("Memory allocation failed in prepare.\n");
+    return NULL;
+  }
+
+  /* Initialize the string to prevent undefined behavior in strcat */
+  concat[0] = '\0';
+
+  /* Concatenate all the strings into `concat` */
   for (i = 1; i < size - limits - 1; i++) {
     strcat(concat, expr[i]);
   }
-  printf("%s\n", concat);
 
-  remove_spaces(concat);
+  printf("Before removing spaces: %s\n", concat);
+
+  /* Remove spaces and replace commas with dots */
+  if (remove_spaces(concat) != 0) {
+    printf("Error removing spaces from the string.\n");
+    free(concat);
+    return NULL;
+  }
+
+  printf("After removing spaces: %s\n", concat);
+
+  /* Debug output to print ASCII values of the characters */
   len = strlen(concat);
-
-  printf("%s\n", concat);
-
   for (i = 0; i < len; i++) {
-    printf("%d\n", concat[i]);
+    printf("ASCII of '%c': %d\n", concat[i], concat[i]);
   }
 
   return concat;
@@ -64,7 +83,7 @@ int is_var(char *p) { return *p == VAR; }
 int is_operator(char *p) {
   int i;
   char *ops = OPS;
-  for (i = 0; i < strlen(ops); i++) {
+  for (i = 0; i < (int)strlen(ops); i++) {
     if (*p == ops[i]) {
       return 1;
     }
@@ -72,18 +91,26 @@ int is_operator(char *p) {
   return 0;
 }
 
-int is_unary_minus(char *p, Token *last) {
-	if (last->type == TOKEN_VARIABLE || last->type == TOKEN_NUMBER) return 0;
-	if (last->type == TOKEN_BINARY_OPERATOR && strcmp(last->value, ")") == 0) return 0;
-	return 1;
+int is_unary_minus(char *p __attribute__((unused)), Token *last) {
+  if (last->type == TOKEN_VARIABLE || last->type == TOKEN_NUMBER)
+    return 0;
+  if (last->type == TOKEN_BINARY_OPERATOR && strcmp(last->value, ")") == 0)
+    return 0;
+  return 1;
+}
+
+int is_parenthesis(char *str)
+{
+	return *str == '(' || *str == ')';
 }
 
 int is_number(char *str) {
-  const char *p = str;  /* Pointer to traverse the string */
-  int has_digits = 0;   /* Flag to ensure we encounter at least one digit */
-  int has_exponent = 0; /* Flag for exponent (E or e) presence */
-  int has_dot = 0;      /* Flag for decimal point presence */
-  int exponent_digits = 0; /* Flag for exponent digits */
+  const char *p = str; /* Pointer to traverse the string */
+  int has_digits = 0;  /* Flag to ensure we encounter at least one digit */
+  int has_exponent __attribute__((unused)) =
+      0; /* Flag for exponent (E or e) presence */
+  int has_dot __attribute__((unused)) = 0; /* Flag for decimal point presence */
+  int exponent_digits = 0;                 /* Flag for exponent digits */
 
   /* Parse the main part of the number */
   while (isdigit(*p)) {
@@ -132,16 +159,18 @@ int is_number(char *str) {
   return p - str;
 }
 
-
 int is_function(char *str) {
-  int i;
-  const char *functions[] = FUNCTIONS;
+  int i, j, len;
+  char *functions[] = FUNCTIONS, *func;
   /* Loop through the array of function names */
-  for (i = 0; i < sizeof(functions) / sizeof(functions[0]); i++) {
-    if (strcmp(str, functions[i]) == 0) {
-      return strlen(
-          functions[i]); /* Return 1 if the string matches a function name */
-    }
+  for (i = 0; i < (int)(sizeof(functions) / sizeof(functions[0])); i++) {
+		func = functions[i];
+		len = strlen(func);
+		for (j = 0; j < len; j++)
+		{
+			if (str[j] != func[j]) break;
+		}
+		if (j == len - 1) return len - 1;
   }
   return 0; /* Return 0 if no match is found */
 }
@@ -149,79 +178,104 @@ int is_function(char *str) {
 /* returns count of tokens if positive, error code if negative */
 int tokenize(char *expr[], int size, int limits, Token **result) {
   int unknown = 0;
-	int free_index = 0;
-	char *concat = prepare(expr, size, limits);
-	char *p = concat;
-	int func_len = 0;
-	int num_len = 0;
-	int i;
+  int free_index = 0;
+  char *concat = prepare(expr, size, limits);
+  if (concat == NULL) {
+    printf("Error in preparing the input expression.\n");
+    return -1;
+  }
 
-	printf("tokenize...%s\n", concat);
+  char *p;
+  int func_len = 0;
+  int num_len = 0;
+  int i;
 
-	*result = (Token *)(malloc(sizeof(Token) * strlen(concat)));
-	if (*result == NULL) return -1;
-	while (*p != '\0')
-	{
-		printf("%c - %d\n", *p, free_index);
-		func_len = is_function(p);
-		num_len = is_number(p);
+  p = concat;
+  printf("tokenize...%s\n", concat);
 
+  *result = (Token *)malloc(sizeof(Token) *
+                            MAX_TOKENS); /* Use a safe upper limit for tokens */
+  if (*result == NULL) {
+    printf("Memory allocation failed for tokens.\n");
+    free(concat);
+    return -1;
+  }
 
-		if (is_var(p)){
-			printf("Variable\n");
-			result[free_index]->type = TOKEN_VARIABLE;
-			result[free_index]->value[0] = 'x';
-			result[free_index]->value[1] = '\0';
-			p++;
-			free_index++;
-		}
-		else if (is_operator(p))
-		{
-			printf("Operator\n");
-			if (free_index == 0 && *p == '-')
-			{
-				result[free_index]->type = TOKEN_UNARY_OPERATOR;
-			}
-			else if (is_unary_minus(p, result[free_index - 1]))
-			{
-				result[free_index]->type = TOKEN_UNARY_OPERATOR;
-			}
-			else {
-				result[free_index]->type = TOKEN_BINARY_OPERATOR;
-			}
-			result[free_index]->value[0] = *p;
-			result[free_index]->value[1] = '\0';
-			p++;
-			free_index++;
-		}
-		else if (func_len)
-		{
-			printf("Function len %d", func_len);
-			result[free_index]->type = TOKEN_FUNCTION;
-			for (i = 0; i < func_len; i++)
-			{
-				result[free_index]->value[i] = *p;
-				p++;
-			}
-			result[free_index]->value[func_len] = '\0';
-			free_index++;
-		}
-		else if (num_len)
-		{
-			printf("Number len %d\n", num_len);
-			result[free_index]->type = TOKEN_NUMBER;
-			for (i = 0; i < func_len; i++)
-			{
-				result[free_index]->value[i] = *p;
-				p++;
-			}
-			result[free_index]->value[func_len] = '\0';
-			free_index++;
-		}
-		else unknown++;
-	}
-	free(concat);
-	if (unknown) return -2;
-	printf("Len %d", free_index);
-	return free_index;
+  printf("size of **result %lu * %lu = %lu\n", sizeof(Token), strlen(concat),
+         sizeof(**result));
+
+  while (*p != '\0') {
+    printf("character - %c - position - %d\n", *p, free_index);
+    func_len = is_function(p);
+    num_len = is_number(p);
+    printf("remaining: %s\n", p);
+
+    if (is_var(p)) {
+      printf("Variable\n");
+      (*result)[free_index].type = TOKEN_VARIABLE;
+      (*result)[free_index].value[0] = *p;   /* Assign the variable character */
+      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+      p++;
+      free_index++;
+    } else if (is_parenthesis(p)) {
+      printf("Parenthesis\n");
+      (*result)[free_index].type = TOKEN_PARENTHESIS;
+      (*result)[free_index].value[0] = *p;   /* Assign the variable character */
+      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+      p++;
+      free_index++;
+    } else if (is_operator(p)) {
+      printf("Operator\n");
+      if (free_index == 0 && *p == '-') {
+        (*result)[free_index].type = TOKEN_UNARY_OPERATOR;
+      } else if (is_unary_minus(p, &(*result)[free_index - 1])) {
+        (*result)[free_index].type = TOKEN_UNARY_OPERATOR;
+      } else {
+        (*result)[free_index].type = TOKEN_BINARY_OPERATOR;
+      }
+      (*result)[free_index].value[0] = *p;   /* Assign the operator character */
+      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+      p++;
+      free_index++;
+    } else if (func_len) {
+      printf("Function len %d\n", func_len);
+      (*result)[free_index].type = TOKEN_FUNCTION;
+      for (i = 0; i < func_len; i++) {
+        (*result)[free_index].value[i] = *p;
+        p++;
+      }
+      (*result)[free_index].value[func_len] =
+          '\0'; /* Null-terminate the function name */
+      free_index++;
+    } else if (num_len) {
+      printf("Number len %d\n", num_len);
+      (*result)[free_index].type = TOKEN_NUMBER;
+      for (i = 0; i < num_len; i++) {
+        (*result)[free_index].value[i] = *p;
+        p++;
+      }
+      (*result)[free_index].value[num_len] =
+          '\0'; /* Null-terminate the number */
+      free_index++;
+    } else {
+      printf("Unknown token: %c\n", *p);
+      unknown++;
+      p++;
+    }
+  }
+
+  free(concat);
+
+  if (unknown) {
+    printf("Unknown tokens encountered: %d\n", unknown);
+    return -2;
+  }
+
+  printf("Total tokens: %d\n", free_index);
+  for (i = 0; i < free_index; i++) {
+    printf("Token %d: Type = %d, Value = %s\n", i, (*result)[i].type,
+           (*result)[i].value);
+  }
+
+  return free_index;
 }

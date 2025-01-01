@@ -48,13 +48,13 @@ int main(int argc, char *argv[])
 		printf("out file: %s\n", out_name);
 
 		token_count = tokenize(argv, argc, limits / 3, token_arr);
-		printf("%d", token_count);
+		printf("%d\n", token_count);
 		/* print tokens */
 		if (token_count > 0)
 		{
 			for (i = 0; i < token_count; i++)
 			{
-				printf("%s\n", (*token_arr)[i].value);
+				printf("%d: %s\n", (*token_arr)[i].type,(*token_arr)[i].value);
 			}
 		}
     return 0;
