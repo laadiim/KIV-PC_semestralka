@@ -170,7 +170,7 @@ int is_function(char *str) {
 		{
 			if (str[j] != func[j]) break;
 		}
-		if (j == len - 1) return len - 1;
+		if (j == len) return len;
   }
   return 0; /* Return 0 if no match is found */
 }
