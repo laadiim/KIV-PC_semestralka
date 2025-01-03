@@ -99,11 +99,6 @@ int is_unary_minus(char *p __attribute__((unused)), Token *last) {
   return 1;
 }
 
-int is_parenthesis(char *str)
-{
-	return *str == '(' || *str == ')';
-}
-
 int is_number(char *str) {
   const char *p = str; /* Pointer to traverse the string */
   int has_digits = 0;  /* Flag to ensure we encounter at least one digit */
@@ -217,9 +212,16 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
       (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
       p++;
       free_index++;
-    } else if (is_parenthesis(p)) {
+    } else if (*p == '(') {
       printf("Parenthesis\n");
-      (*result)[free_index].type = TOKEN_PARENTHESIS;
+      (*result)[free_index].type = TOKEN_LPARENTHESIS;
+      (*result)[free_index].value[0] = *p;   /* Assign the variable character */
+      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+      p++;
+      free_index++;
+    } else if (*p == ')') {
+      printf("Parenthesis\n");
+      (*result)[free_index].type = TOKEN_RPARENTHESIS;
       (*result)[free_index].value[0] = *p;   /* Assign the variable character */
       (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
       p++;
