@@ -5,12 +5,17 @@
 #include "tokens.h"
 #include "stack.h"
 #include "yard.h"
+#include "postfix_eval.h"
+#include "postscript.h"
+
+
+#define STEPS 5000
 
 int check_if_correct(Token *expr[], int token_count)
 {
-	stack *token_stack;
-	int i;
-	Token *tmp;
+	stack *token_stack = NULL;
+	int i = 0;
+	Token *tmp = NULL;
 	int error = 0;
 
 	token_stack = stack_create(token_count);
@@ -55,25 +60,53 @@ int check_if_correct(Token *expr[], int token_count)
 	return !error;
 }
 
-int check_if_limits(char *arg)
+int check_limits(char *arg)
 {
-    int colons = 0;
-    while (*arg != '\0')
-    {
-        if (*arg == ':') colons++;
-        arg += sizeof(char);
-    }
-    return colons;
+	int counter = 0;
+	while (*arg != '\0')
+	{
+		if (*arg == ':') counter++;
+		arg++;
+	}
+	return counter;
+}
+
+int get_limits(char *arg, double *x_min, double *x_max, double *y_min, double *y_max)
+{
+	char *endptr = NULL;
+	*x_min = strtod(arg, &endptr);
+	if (*endptr != ':') return 0;
+	arg = endptr + 1;
+	*x_max = strtod(arg, &endptr);
+	if (*endptr != ':') return 0;
+	arg = endptr + 1;
+	*y_min = strtod(arg, &endptr);
+	if (*endptr != ':') return 0;
+	arg = endptr + 1;
+	*y_max = strtod(arg, &endptr);
+	if (*endptr != '\0') return 0;
+	return 1;
 }
 
 /* ENTRY POINT */
 int main(int argc, char *argv[])
 {
     int limits = 0;
-		char *out_name;
-		Token **token_arr;
-		int token_count;
-		int i;
+		char *out_name = NULL;
+		Token **token_arr = NULL;
+		int token_count = 0;
+		int i = 0;
+		double result = 0;
+
+		double x_min = -10;
+		double x_max = 10;
+		double y_min = -10;
+		double y_max = 10;
+
+		double step = 0;
+		double j = 0;
+		double x_values[STEPS];
+		double y_values[STEPS];
 
 		setlocale(LC_NUMERIC, "C");
 
@@ -85,20 +118,29 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    limits = check_if_limits(argv[argc - 1]);
-		if (limits != 0 && limits != 3)
+		limits = check_limits(argv[argc - 1]);
+		if (limits == 3)
 		{
-			printf("Invalid limits format!\n");
-      printf("Usage: <x_min>:<x_max>:<y_min>:<y_max>\n");
-			return 4;
+			limits = get_limits(argv[argc - 1], &x_min, &x_max, &y_min, &y_max);
+			if (limits == 0)
+			{
+				printf("Invalid limits format!\n");
+				printf("Usage: <x_min>:<x_max>:<y_min>:<y_max>\n");
+				return 4;
+			}
+			if (x_min >= x_max || y_min >= y_max)
+			{
+				printf("Invalid limits values!\n");
+				printf("Usage: <x_min>:<x_max>:<y_min>:<y_max>\n");
+				return 4;
+			}
 		}
 
-		out_name = argv[argc - 1 - limits / 3];
+		out_name = argv[argc - 1 - limits];
 
-    printf("limits: %d\n", limits);
-		printf("out file: %s\n", out_name);
 
-		token_count = tokenize(argv, argc, limits / 3, token_arr);
+		token_arr = (Token **)(malloc(sizeof(Token *)));
+		token_count = tokenize(argv, argc, limits, token_arr);
 		printf("%d\n", token_count);
 		/* print tokens */
 		if (token_count > 0)
@@ -114,10 +156,27 @@ int main(int argc, char *argv[])
 		token_count = shunting_yard(token_arr, token_count);
 		for (i = 0; i < token_count; i++)
 		{
-			printf("%s", (*token_arr)[i].value);
+			printf("%s, %d\n", (*token_arr)[i].value, (*token_arr)[i].type);
 		}
+
+		if (!postfix_eval(*token_arr, token_count, 2, &result)) printf("Something went wrong\n");
+		else printf("result = %f", result);
 		printf("\n");
 
+		step = (x_max - x_min) / STEPS;
+
+		for (i = 0; i < STEPS; i++)
+		{
+			if (!postfix_eval(*token_arr, token_count, x_min + i * step, &(y_values[i]))) return 5;
+			x_values[i] = x_min + i * step;
+		}
+
+		create_postscript(x_values, STEPS, y_values, STEPS, x_min, x_max, y_min, y_max, out_name);
+
+    printf("limits: %f:%f:%f:%f\n", x_min, x_max, y_min, y_max);
+		printf("out file: %s\n", out_name);
+		free(*token_arr);
+		free(token_arr);
     return 0;
 }
 

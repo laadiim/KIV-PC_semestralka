@@ -35,7 +35,8 @@ int remove_spaces(char *str) {
 
 char *prepare(char **expr, int size, int limits) {
   int len = 0;
-  int i;
+  int i = 0;
+  char *concat = NULL;
 
   /* Calculate the total length of the concatenated string */
   for (i = 1; i < size - limits - 1; i++) {
@@ -43,7 +44,6 @@ char *prepare(char **expr, int size, int limits) {
   }
 
   /* Allocate memory for the concatenated string (+1 for null terminator) */
-  char *concat;
   concat = (char *)malloc(sizeof(char) * (len + 1));
   if (concat == NULL) {
     printf("Memory allocation failed in prepare.\n");
@@ -81,7 +81,7 @@ char *prepare(char **expr, int size, int limits) {
 int is_var(char *p) { return *p == VAR; }
 
 int is_operator(char *p) {
-  int i;
+  int i = 0;
   char *ops = OPS;
   for (i = 0; i < (int)strlen(ops); i++) {
     if (*p == ops[i]) {
@@ -91,7 +91,8 @@ int is_operator(char *p) {
   return 0;
 }
 
-int is_unary_minus(char *p __attribute__((unused)), Token *last) {
+int is_unary_minus(char *p , Token *last) {
+	if (*p != '-') return 0;
   if (last->type == TOKEN_VARIABLE || last->type == TOKEN_NUMBER)
     return 0;
   if (last->type == TOKEN_BINARY_OPERATOR && strcmp(last->value, ")") == 0)
@@ -102,9 +103,6 @@ int is_unary_minus(char *p __attribute__((unused)), Token *last) {
 int is_number(char *str) {
   const char *p = str; /* Pointer to traverse the string */
   int has_digits = 0;  /* Flag to ensure we encounter at least one digit */
-  int has_exponent __attribute__((unused)) =
-      0; /* Flag for exponent (E or e) presence */
-  int has_dot __attribute__((unused)) = 0; /* Flag for decimal point presence */
   int exponent_digits = 0;                 /* Flag for exponent digits */
 
   /* Parse the main part of the number */
@@ -115,7 +113,6 @@ int is_number(char *str) {
 
   /* Check for a decimal point */
   if (*p == '.') {
-    has_dot = 1;
     p++;
     /* Parse digits after the decimal point */
     while (isdigit(*p)) {
@@ -126,7 +123,6 @@ int is_number(char *str) {
 
   /* Check for an exponent (E or e) */
   if ((*p == 'E' || *p == 'e') && has_digits) {
-    has_exponent = 1;
     p++;
 
     /* Check for an optional sign after the exponent */
@@ -155,8 +151,8 @@ int is_number(char *str) {
 }
 
 int is_function(char *str) {
-  int i, j, len;
-  char *functions[] = FUNCTIONS, *func;
+  int i = 0, j = 0, len = 0;
+  char *functions[] = FUNCTIONS, *func = NULL;
   /* Loop through the array of function names */
   for (i = 0; i < (int)(sizeof(functions) / sizeof(functions[0])); i++) {
 		func = functions[i];
@@ -175,15 +171,16 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
   int unknown = 0;
   int free_index = 0;
   char *concat = prepare(expr, size, limits);
+  char *p;
+  int func_len = 0;
+  int num_len = 0;
+  int i = 0;
+
   if (concat == NULL) {
     printf("Error in preparing the input expression.\n");
     return -1;
   }
 
-  char *p;
-  int func_len = 0;
-  int num_len = 0;
-  int i;
 
   p = concat;
   printf("tokenize...%s\n", concat);

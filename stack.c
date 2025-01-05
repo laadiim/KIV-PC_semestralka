@@ -6,7 +6,7 @@
 
 stack *stack_create(uint size)
 {
-    stack *temp;
+    stack *temp = NULL;
 
     /* sanity check */
     if (!size) return NULL;
@@ -32,7 +32,6 @@ int stack_push(stack *s, Token *item)
     /* sanity check */
     if (!s || !item) return 0;
     if (s->sp >= (int)s->size - 1) {
-        printf("Stack overflow detected\n");
         return 0;
     }
 
@@ -47,7 +46,6 @@ Token *stack_pop(stack *s)
     /* sanity check */
     if (!s) return NULL;
     if (s->sp < 0) {
-        printf("Stack underflow detected\n");
         return NULL;
     }
 
@@ -63,7 +61,6 @@ Token *stack_peek(stack *s)
     /* sanity check */
     if (!s) return NULL;
     if (s->sp < 0) {
-        printf("Stack is empty\n");
         return NULL;
     }
 

@@ -30,9 +30,9 @@ int shunting_yard(Token **token_arr, int token_count)
 {
 	int i, postfix_ptr = 0, p;
 	int e = 0;
-	stack *token_stack;
-	Token *postfix;
-	Token *tmp;
+	stack *token_stack = NULL;
+	Token *postfix = NULL;
+	Token *tmp = NULL;
 
 	if (token_arr == NULL || *token_arr == NULL) return 0;
 	if (token_count < 1) return 0;
@@ -74,7 +74,7 @@ int shunting_yard(Token **token_arr, int token_count)
 		if ((*token_arr)[i].type == TOKEN_BINARY_OPERATOR || (*token_arr)[i].type == TOKEN_UNARY_OPERATOR || (*token_arr)[i].type == TOKEN_FUNCTION)
 		{
 			tmp = stack_peek(token_stack);
-			while (tmp != NULL && priority(tmp) >= p)
+			while (tmp != NULL && priority(tmp) >= p && priority(tmp) <= 6)
 			{
 				postfix[postfix_ptr] = *stack_pop(token_stack);
 				postfix_ptr++;

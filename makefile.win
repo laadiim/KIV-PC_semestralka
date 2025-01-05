@@ -1,0 +1,13 @@
+CC = gcc
+
+CFLAGS = -Wall -Wextra -std=c89 -pedantic
+LDFLAGS = $(CFLAGS) -lm
+
+BIN = graph.exe
+OBJ = main.o tokens.o stack.o yard.o postfix_eval.o postscript.o
+
+$(BIN): $(OBJ)
+	$(CC) $(OBJ) -o $(BIN) $(LDFLAGS)
+
+.c.o:
+	$(CC) -c $< $(CFLAGS)
