@@ -38,6 +38,9 @@ char *prepare(char **expr, int size, int limits) {
   int i = 0;
   char *concat = NULL;
 
+	/* sanity check */
+	if (expr == NULL || *expr == NULL || size == 0 || limits > 1 || limits < 0) return NULL;
+
   /* Calculate the total length of the concatenated string */
   for (i = 1; i < size - limits - 1; i++) {
     len += strlen(expr[i]);
@@ -209,6 +212,7 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
       (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
       p++;
       free_index++;
+
     } else if (*p == '(') {
       printf("Parenthesis\n");
       (*result)[free_index].type = TOKEN_LPARENTHESIS;
@@ -216,6 +220,7 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
       (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
       p++;
       free_index++;
+
     } else if (*p == ')') {
       printf("Parenthesis\n");
       (*result)[free_index].type = TOKEN_RPARENTHESIS;
@@ -223,20 +228,25 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
       (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
       p++;
       free_index++;
+
     } else if (is_operator(p)) {
       printf("Operator\n");
       if (free_index == 0 && *p == '-') {
         (*result)[free_index].type = TOKEN_UNARY_OPERATOR;
+
       } else if (is_unary_minus(p, &(*result)[free_index - 1])) {
         (*result)[free_index].type = TOKEN_UNARY_OPERATOR;
-      } else {
+      
+			} else {
         (*result)[free_index].type = TOKEN_BINARY_OPERATOR;
       }
-      (*result)[free_index].value[0] = *p;   /* Assign the operator character */
+      
+			(*result)[free_index].value[0] = *p;   /* Assign the operator character */
       (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
       p++;
       free_index++;
-    } else if (func_len) {
+    
+		} else if (func_len) {
       printf("Function len %d\n", func_len);
       (*result)[free_index].type = TOKEN_FUNCTION;
       for (i = 0; i < func_len; i++) {
@@ -246,17 +256,21 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
       (*result)[free_index].value[func_len] =
           '\0'; /* Null-terminate the function name */
       free_index++;
-    } else if (num_len) {
+		
+		} else if (num_len) {
       printf("Number len %d\n", num_len);
       (*result)[free_index].type = TOKEN_NUMBER;
-      for (i = 0; i < num_len; i++) {
+      
+			for (i = 0; i < num_len; i++) {
         (*result)[free_index].value[i] = *p;
         p++;
       }
-      (*result)[free_index].value[num_len] =
+    
+			(*result)[free_index].value[num_len] =
           '\0'; /* Null-terminate the number */
       free_index++;
-    } else {
+    
+		} else {
       printf("Unknown token: %c\n", *p);
       unknown++;
       p++;
@@ -267,7 +281,7 @@ int tokenize(char *expr[], int size, int limits, Token **result) {
 
   if (unknown) {
     printf("Unknown tokens encountered: %d\n", unknown);
-    return -2;
+    return -1;
   }
 
   printf("Total tokens: %d\n", free_index);

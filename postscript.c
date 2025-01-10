@@ -1,83 +1,104 @@
 #include <stdio.h>
+#include "postscript.h"
 
-#define PS_WIDTH 560
-#define PS_HEIGHT 560
-#define NOTANUMBER 100001
-#define MAX 1000
-#define MIN -1000
 
 /* Function to create a PostScript file plotting points in the true coordinate system */
-int create_postscript(double *x, int x_length, double *y, int y_length, double x_min, double x_max, double y_min, double y_max, char *outpath) {
+int create_postscript(double *x, double *y, int length, double x_min, double x_max, double y_min, double y_max, char *outpath)
+{
     /* File pointer */
     FILE *out;
-    double scale_x, scale_y;
-    double x_offset, y_offset;
-    double x_next, y_next;
-    int num_ticks_x = 10;
-    int num_ticks_y = 10;
+
     int i = 0;
+    int num_ticks = 10;
+
+    double x_next, y_next;
     double x_point, y_point;
-    double x_tick_length = x_max - x_min;
-		double y_tick_length = y_max - y_min;
+    double x_tick_length = GRAPH_WIDTH - OFFSET;
+		double y_tick_length = GRAPH_HEIGHT - OFFSET;
+    double len_x = (x_max - x_min) / 10.0;
+    double len_y = (y_max - y_min) / 10.0;
+    double label_scale = 0;
 		double x_tick, y_tick;
+    double modif_scale_x = 0;
+    double modif_scale_y = 0;
 
     /* Open the output file */
     out = fopen(outpath, "w");
-    if (out == NULL) {
-        perror("Error opening output file");
-        return -1;
+    if (out == NULL) 
+    {
+        perror("Could not output file.");
+        return 1;
     }
-    scale_x = PS_WIDTH / (x_max - x_min);
-    scale_y = PS_HEIGHT / (y_max - y_min);
 
-    x_offset = (x_min + x_max) / 2.0 * scale_x;
-    y_offset = (y_min + y_max) / 2.0 * scale_y;
-
+    /* file header */
     fprintf(out, "%%!PS-Adobe-3.0\n");
-    fprintf(out, "%%%%Creator: C Function Graph Generator\n");
-    fprintf(out, "%%%%Title: Function Graph\n");
+    fprintf(out, "%%%%Creator: Math function visualizer\n");
+    fprintf(out, "%%%%Title: Graph of function\n");
     fprintf(out, "%%%%Pages: 1\n");
     fprintf(out, "%%%%EndComments\n");
-    fprintf(out, "320 420 translate\n");
-    fprintf(out, "%.2f %.2f translate\n", -x_offset, -y_offset);
-    fprintf(out, "%.2f %.2f scale\n", scale_x, scale_y);
+    fprintf(out, "<< /PageSize [%.0f %.0f] >> setpagedevice\n", PAGE_WIDTH, PAGE_HEIGHT);
 
-    fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto %.2f %.2f lineto 0 setlinewidth stroke\n", x_min, y_max, x_min, y_min, x_max, y_min);
-
-    for (i = 0; i <= num_ticks_x; i++) {
-        x_tick = x_min + i * (x_max - x_min) / num_ticks_x;
-        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto stroke\n", x_tick, y_min, x_tick, y_min + x_tick_length);
+    
+    /* making grid */
+    for (i = 0; i <= num_ticks; i++) 
+    {
+        x_tick = OFFSET + i * (GRAPH_WIDTH - OFFSET) / num_ticks;
+        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto stroke\n", x_tick, OFFSET, x_tick, OFFSET + y_tick_length);
+    }
+    for (i = 0; i <= num_ticks; i++) 
+    {
+        y_tick = OFFSET + i * (GRAPH_HEIGHT - OFFSET) / num_ticks;
+        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto stroke\n", OFFSET, y_tick, OFFSET + x_tick_length, y_tick);
     }
 
-    for (i = 0; i <= num_ticks_y; i++) {
-        y_tick = y_min + i * (y_max - y_min) / num_ticks_y;
-        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto stroke\n", x_min, y_tick, x_min + y_tick_length, y_tick);
-    }
-		fprintf(out, "/Helvetica findfont\n1 scalefont\nsetfont\n");    
+    
+    /* setting font */
+    fprintf(out, "/Helvetica findfont\n%.2f scalefont\nsetfont\n", 30.0);    
 
-		fprintf(out, "%.2f %.2f moveto (%.2f) show\n", x_min, y_min - 1, x_min);
-		fprintf(out, "%.2f %.2f moveto (%.2f) show\n", x_max - 2, y_min - 1, x_max);
+    /* bottom left x corner label */
+    fprintf(out, "%.2f %.2f moveto (%.2f) show\n", OFFSET, OFFSET / 1.5, x_min);
 
-		fprintf(out, "90 rotate\n%.2f %.2f moveto (%.2f) show\n-90 rotate\n", x_min, y_max + 0.1, y_min);
-		fprintf(out, "90 rotate\n%.2f %.2f moveto (%.2f) show\n-90 rotate\n", x_max - 2, y_max + 0.1, y_max);
+    /* bottom right x corner label */
+    fprintf(out, "%.2f %.2f moveto (%.2f) show\n", GRAPH_WIDTH - OFFSET, OFFSET / 1.5, x_max);
+
+    /* bottom left y corner label */
+    fprintf(out, "%.2f %.2f moveto (%.2f) show\n", OFFSET / 7.0, OFFSET, y_min);
+
+    /* top left y corner label */
+    fprintf(out, "%.2f %.2f moveto (%.2f) show\n", OFFSET / 7.0, GRAPH_HEIGHT - OFFSET / 2.0, y_max);
+    
 
     x_point = x[0];
     y_point = y[0];
-    fprintf(out, "newpath\n 1 16 div setlinewidth\n %.2f %.2f moveto\n", x_point, y_point);
-    for (i = 1; i < x_length; i++) {
+
+    /* moving to the x_point and y_point */
+    fprintf(out, "newpath\n 4 setlinewidth\n %.2f %.2f moveto\n", x_point, y_point);
+
+    /* writing the function */
+    for (i = 1; i < length; i++) 
+    {
         x_next = x[i];
         y_next = y[i];
-        if (y_next >= y_max || y_next <= y_min || y_point >= y_max || y_point <= y_min)
-            fprintf(out, "stroke\nnewpath\n1 16 div setlinewidth\n%.2f %.2f moveto\n", x_next, y_next);
+        
+        if (y_next > GRAPH_HEIGHT || y_next < OFFSET || y_point > GRAPH_HEIGHT || y_point < OFFSET)
+        {
+            fprintf(out, "stroke\nnewpath\n4 setlinewidth\n%.2f %.2f moveto\n", x_next, y_next);
+        }
+            
         else
+        {
             fprintf(out, "%.2f %.2f lineto\n", x_next, y_next);
+        }
+                 
         x_point = x_next;
         y_point = y_next;
     }
+
+    /* drawing the last line */
     fprintf(out, "stroke\n");
 
+    /* showing the page and closing file */
     fprintf(out, "showpage\n");
-
     fclose(out);
 
     return 0;

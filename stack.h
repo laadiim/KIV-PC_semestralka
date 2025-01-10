@@ -1,16 +1,15 @@
 #ifndef __STACK__
 #define __STACK__
 #include "tokens.h"
-#define uint unsigned int
 
 typedef struct 
 {
     Token **items;
     int sp;
-    uint size;
+    unsigned int size;
 } stack;
 
-stack *stack_create(uint size);
+stack *stack_create(unsigned int size);
 
 int stack_push(stack *s, Token *item);
 

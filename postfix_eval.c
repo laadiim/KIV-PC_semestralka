@@ -1,266 +1,406 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
-#include "tokens.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "postfix_eval.h"
 #include "stack.h"
+#include "tokens.h"
 
 #define NOTANUMBER 100001
 #define MAX 100000
 #define MIN -100000
 
-#define FREE_ALL {\
-				stack_clear(&token_stack);\
-				free(tokens_copy);\
-				tokens_copy = NULL;\
-				return  0;\
-				}
+#define FREE_ALL                                                               \
+  {                                                                            \
+    stack_clear(&token_stack);                                                 \
+    free(tokens_copy);                                                         \
+    tokens_copy = NULL;                                                        \
+    return 1;                                                                  \
+  }
 
 typedef enum {
-	F_UNDEFINED,
-	SIN,
-	COS,
-	TAN,
-	SINH,
-	COSH,
-	TANH,
-	ASIN,
-	ACOS,
-	ATAN,
-	ABS,
-	LOG,
-	LN,
-	EXP
+  F_UNDEFINED,
+  SIN,
+  COS,
+  TAN,
+  SINH,
+  COSH,
+  TANH,
+  ASIN,
+  ACOS,
+  ATAN,
+  ABS,
+  LOG,
+  LN,
+  EXP
 } functions;
 
-typedef enum {
-	O_UNDEFINED,
-	ADD,
-	SUB,
-	MUL,
-	DIV,
-	POW
-} operators;
+typedef enum { O_UNDEFINED, ADD, SUB, MUL, DIV, POW } operators;
 
-int get_function(Token *func)
-{
-	
-	if (!strcmp(func->value, "sin")) return SIN;
-	if (!strcmp(func->value, "cos")) return COS;
-	if (!strcmp(func->value, "tan")) return TAN;
-	if (!strcmp(func->value, "sinh")) return SINH;
-	if (!strcmp(func->value, "cosh")) return COSH;
-	if (!strcmp(func->value, "tanh")) return TANH;
-	if (!strcmp(func->value, "asin")) return ASIN;
-	if (!strcmp(func->value, "acos")) return ACOS;
-	if (!strcmp(func->value, "atan")) return ATAN;
-	if (!strcmp(func->value, "abs")) return ABS;
-	if (!strcmp(func->value, "log")) return LOG;
-	if (!strcmp(func->value, "ln")) return LN;
-	if (!strcmp(func->value, "exp")) return EXP;
-	return F_UNDEFINED;
+int get_operator(Token *operator) {
+  if (operator== NULL)
+    return 0;
+
+  if (!strcmp(operator->value, "+"))
+    return ADD;
+  if (!strcmp(operator->value, "-"))
+    return SUB;
+  if (!strcmp(operator->value, "*"))
+    return MUL;
+  if (!strcmp(operator->value, "/"))
+    return DIV;
+  if (!strcmp(operator->value, "^"))
+    return POW;
+
+  return O_UNDEFINED;
 }
 
-int get_operator(Token *op)
-{
-	if (!strcmp(op->value, "+")) return ADD;
-	if (!strcmp(op->value, "-")) return SUB;
-	if (!strcmp(op->value, "*")) return MUL;
-	if (!strcmp(op->value, "/")) return DIV;
-	if (!strcmp(op->value, "^")) return POW;
-	return O_UNDEFINED;
+int eval_operator(Token *fr_number, Token *sec_number, Token *oper,
+                  Token *result) {
+  int otype = 0;
+  double num1 = 0;
+  double num2 = 0;
+  double r = 0;
+  char *endptr = NULL;
+
+  /* sanity check */
+  if (fr_number == NULL)
+    return 0;
+  if (sec_number == NULL)
+    return 0;
+  if (oper == NULL)
+    return 0;
+  if (result == NULL)
+    return 0;
+
+  num1 = strtod(fr_number->value, &endptr);
+  if (*endptr != '\0')
+    return 0;
+
+  num2 = strtod(sec_number->value, &endptr);
+  if (*endptr != '\0')
+    return 0;
+
+  otype = get_operator(oper);
+
+  switch (otype) {
+  case ADD:
+    r = num1 + num2;
+    break;
+
+  case SUB:
+    r= num1 - num2;
+    break;
+
+  case MUL:
+    r= num1 * num2;
+    break;
+
+  case DIV:
+    if (num2 == 0) {
+      r= NOTANUMBER;
+    } else
+      r= num1 / num2;
+    break;
+
+  case POW:
+    r= pow(num1, num2);
+    break;
+
+  default:
+    return O_UNDEFINED;
+    break;
+  }
+
+  if (r== NOTANUMBER) {
+    result->type = TOKEN_NUMBER;
+    sprintf(result->value, "%d", NOTANUMBER);
+    return 1;
+  }
+  
+	r = r > MAX ? MAX : (r < MIN ? MIN : r);
+
+  result->type = TOKEN_NUMBER;
+  sprintf(result->value, "%f", r);
+
+  return 1;
 }
 
-int eval_function(Token *func, Token *parameter, Token **result)
-{
-	int f = 0;
-	double param = 0;
-	double r = 0;
-	char *endptr = NULL;
-	if (result == NULL || func == NULL || parameter == NULL) return 0;
+int get_function(Token *func) {
+  /* sanity check */
+  if (func == NULL)
+    return 0;
 
-	param = strtod(parameter->value, &endptr);
-	if (*endptr != '\0') return 0;
+  if (!strcmp(func->value, "sin"))
+    return SIN;
+  if (!strcmp(func->value, "cos"))
+    return COS;
+  if (!strcmp(func->value, "tan"))
+    return TAN;
+  if (!strcmp(func->value, "sinh"))
+    return SINH;
+  if (!strcmp(func->value, "cosh"))
+    return COSH;
+  if (!strcmp(func->value, "tanh"))
+    return TANH;
+  if (!strcmp(func->value, "asin"))
+    return ASIN;
+  if (!strcmp(func->value, "acos"))
+    return ACOS;
+  if (!strcmp(func->value, "atan"))
+    return ATAN;
+  if (!strcmp(func->value, "abs"))
+    return ABS;
+  if (!strcmp(func->value, "log"))
+    return LOG;
+  if (!strcmp(func->value, "ln"))
+    return LN;
+  if (!strcmp(func->value, "exp"))
+    return EXP;
 
-	*result = (Token *)(malloc(sizeof(Token)));
-	if (*result == NULL) return 0;
-
-	f = get_function(func);
-	switch (f) {
-		case SIN:
-			r = sin(param);
-			break;
-		case COS:
-			r = cos(param);
-			break;
-		case TAN:
-			r = tan(param);
-			break;
-		case SINH:
-			r = sinh(param);
-			break;
-		case COSH:
-			r = cosh(param);
-			break;
-		case TANH:
-			r = tanh(param);
-			break;
-		case ASIN:
-			if (param < -1 || param > 1) r = NOTANUMBER;
-			else r = asin(param);
-			break;
-		case ACOS:
-			if (param < -1 || param > 1) r = NOTANUMBER;
-			else r = acos(param);
-			break;
-		case ATAN:
-			r = atan(param);
-			break;
-		case ABS:
-			r = fabs(param);
-			break;
-		case LOG:
-			r = param <= 0 ? NOTANUMBER : log10(param);
-			break;
-		case LN:
-			r = param <= 0 ? NOTANUMBER : log(param);
-			break;
-		case EXP:
-			r = exp(param);
-			break;
-		default:
-			r = NOTANUMBER;
-			break;
-	}
-
-	if (r != NOTANUMBER)	r = r > MAX ? MAX : (r < MIN ? MIN : r);
-
-	sprintf((*result)->value, "%f", r);
-	(*result)->type = TOKEN_NUMBER;
-	return 1;
+  return F_UNDEFINED;
 }
 
-int eval_operator(Token *op, Token *num1, Token *num2, Token **result)
-{
-	int o = 0;
-	double n1 = 0;
-	double n2 = 0;
-	double r = 0;
-	char *endptr = NULL;
+int eval_function(Token *number, Token *func, Token *result) {
+  int ftype = 0;
+  double num = 0;
+  char *endptr = NULL;
+  double r = 0;
 
-	if (op == NULL || num1 == NULL || num2 == NULL || result == NULL) return 0;
+  /* sanity check */
+  if (number == NULL)
+    return 0;
+  if (func == NULL)
+    return 0;
+  if (result == NULL)
+    return 0;
 
-	n1 = strtod(num1->value, &endptr);
-	if (*endptr != '\0') return 0;
-	n2 = strtod(num2->value, &endptr);
-	if (*endptr != '\0') return 0;
+  num = strtod(number->value, &endptr);
+  if (*endptr != '\0')
+    return 0;
 
-	*result = (Token *)(malloc(sizeof(Token)));
-	if (*result == NULL) return 0;
+  ftype = get_function(func);
 
-	o = get_operator(op);
-	switch (o)
-	{
-		case ADD:
-			r = n1 + n2;
-			break;
-		case SUB: 
-			r = n1 - n2;
-			break;
-		case MUL:
-			r = n1 * n2;
-			break;
-		case DIV:
-			r = n2 == 0 ? NOTANUMBER : n1 / n2;
-			break;
-		case POW:
-			r = pow(n1, n2);
-			break;
-		default:
-			r = NOTANUMBER;
-			break;
-	}
-	
-	if (r != NOTANUMBER) r = r > MAX ? MAX : (r < MIN ? MIN : r);
+  switch (ftype) {
+  case SIN:
+    r = sin(num);
+    break;
 
-	sprintf((*result)->value, "%f", r);
-	(*result)->type = TOKEN_NUMBER;
-	return 1;
+  case COS:
+    r = cos(num);
+    break;
+
+  case TAN:
+    r = tan(num);
+    break;
+
+  case SINH:
+    r = sinh(num);
+    break;
+
+  case COSH:
+    r = cosh(num);
+    break;
+
+  case TANH:
+    r = tanh(num);
+    break;
+
+  case ASIN:
+    if (num < -1 || num > 1) {
+      r = NOTANUMBER;
+    } else
+      r = asin(num);
+    break;
+
+  case ACOS:
+    if (num < -1 || num > 1) {
+      r = NOTANUMBER;
+    } else
+      r = acos(num);
+    break;
+
+  case ATAN:
+    r = atan(num);
+    break;
+
+  case ABS:
+    r = fabs(num);
+    break;
+
+  case LOG:
+    if (num <= 0) {
+      r = NOTANUMBER;
+    } else
+      r = log10(num);
+    break;
+
+  case LN:
+    if (num <= 0) {
+      r = NOTANUMBER;
+    } else
+      r = log(num);
+    break;
+
+  case EXP:
+    r = exp(num);
+    break;
+
+  default:
+    return F_UNDEFINED;
+    break;
+  }
+
+  if (r== NOTANUMBER) {
+    result->type = TOKEN_NUMBER;
+    sprintf(result->value, "%d", NOTANUMBER);
+    return 1;
+  }
+  
+	r = r > MAX ? MAX : (r < MIN ? MIN : r);
+
+  result->type = TOKEN_NUMBER;
+  sprintf(result->value, "%f", r);
+
+  return 1;
 }
 
-int postfix_eval(Token *expr, int token_count, double param, double *result)
-{
-	stack *token_stack = NULL;
-	Token *tokens_copy = NULL;
-	int i = 0;
-	Token *curr, *tmp1, *tmp2;
-	double tmp = 0;
-	char *endptr = NULL;
+int postfix_eval(Token *token_arr, int tokens_count, double x, double *result) {
+  Token *tokens_copy;
+  stack *token_stack = NULL;
+  Token *current = NULL;
 
-	if (expr == NULL || result == NULL || token_count < 1) return 0;
+  Token *token_on_top = NULL;
+  Token *num1 = NULL; 
+  Token *num2 = NULL;
 
-	token_stack = stack_create(token_count);
-	if (token_stack == NULL) return 0;
-	
-	tokens_copy = (Token *)(malloc(token_count * sizeof(Token)));
-	if (tokens_copy == NULL)
-	{
-		stack_clear(&token_stack);
-		return 0;
-	}
+  char *endptr = NULL;
 
-	memcpy(tokens_copy, expr, token_count * sizeof(Token));
+  double num = 0;
+  int error = 0;
+  int wrong_func_output = 0;
+  int wrong_op_output = 0;
+  int i = 0;
 
-	for (i = 0; i < token_count; i++)
-	{
-		curr = &(tokens_copy[i]);
-		if (curr->type == TOKEN_NUMBER) 
-		{
-			if(!stack_push(token_stack, curr)) FREE_ALL; 
-		}
+  /* sanity check */
+  if (token_arr == NULL) {
+    return 0;
+  }
+  if (result == NULL) {
+    return 0;
+  }
+  if (tokens_count <= 0) {
+    return 0;
+  }
 
-		if (curr->type == TOKEN_VARIABLE)
-		{
-			curr->type = TOKEN_NUMBER;
-			sprintf(curr->value, "%f", param);
-			if(!stack_push(token_stack, curr)) FREE_ALL;
-		}
+  *result = NOTANUMBER;
 
-		if (curr->type == TOKEN_UNARY_OPERATOR)
-		{
-			curr = stack_peek(token_stack);
-			if (curr == NULL) FREE_ALL;
-			tmp = strtod(curr->value, &endptr);
-			if (*endptr != '\0') FREE_ALL;
-			sprintf(curr->value, "%f", -tmp);
-		}
+  token_stack = stack_create((unsigned int)tokens_count);
+  if (token_stack == NULL) {
+    return 0;
+  }
 
-		if (curr->type == TOKEN_FUNCTION)
-		{
-			tmp1 = stack_pop(token_stack);
-			if (tmp1 == NULL) FREE_ALL;
-			if (!eval_function(curr, tmp1, &tmp2)) FREE_ALL;
-			if (!stack_push(token_stack, tmp2)) FREE_ALL;
-		}
+  tokens_copy = (Token *)malloc(sizeof(Token) * tokens_count);
+  memcpy(tokens_copy, token_arr, sizeof(Token) * tokens_count);
 
-		if (curr->type == TOKEN_BINARY_OPERATOR)
-		{
-			tmp1 = stack_pop(token_stack);
-			tmp2 = stack_pop(token_stack);
-			if (tmp2 == NULL) FREE_ALL;
-			if (!eval_operator(curr, tmp2, tmp1, &curr)) FREE_ALL;
-			if (!stack_push(token_stack, curr)) FREE_ALL;
-		}
-	}
-	curr = stack_pop(token_stack);
-	if (curr == NULL) FREE_ALL;
-	*result = strtod(curr->value, &endptr);
-	if (*endptr != '\0') FREE_ALL;
-	curr = stack_pop(token_stack);
-	if (curr != NULL) FREE_ALL;
-	free(tokens_copy);
-	tokens_copy = NULL;
-	stack_clear(&token_stack);
-	return 1;
+  for (i = 0; i < tokens_count; i++) {
+    current = &(tokens_copy[i]);
+
+    if (current->type == TOKEN_NUMBER) {
+      if (stack_push(token_stack, current) == 0) {
+        error = 1;
+        break;
+      }
+      continue;
+    }
+
+    if (current->type == TOKEN_VARIABLE) {
+      current->type = TOKEN_NUMBER;
+      sprintf(current->value, "%f", x);
+
+      if (stack_push(token_stack, current) == 0) {
+        error = 1;
+        break;
+      }
+      continue;
+    }
+
+    if (current->type == TOKEN_UNARY_OPERATOR) {
+      token_on_top = stack_pop(token_stack);
+      if (token_on_top == NULL) {
+        error = 1;
+        break;
+      }
+
+      num = strtod(token_on_top->value, &endptr);
+      if (*endptr != '\0') {
+        error = 1;
+        break;
+      }
+
+      num = -num;
+      sprintf(token_on_top->value, "%f", num);
+
+      if (stack_push(token_stack, token_on_top) == 0) {
+        error = 1;
+        break;
+      }
+      continue;
+    }
+
+    if (current->type == TOKEN_FUNCTION) {
+      token_on_top = stack_pop(token_stack);
+      if (token_on_top == NULL) {
+        error = 1;
+        break;
+      }
+
+      if (eval_function(token_on_top, current, token_on_top) == 0) {
+        error = 1;
+        break;
+      }
+
+      if (stack_push(token_stack, token_on_top) == 0) {
+        error = 1;
+        break;
+      }
+      continue;
+    }
+
+    if (current->type == TOKEN_BINARY_OPERATOR) {
+      num2 = stack_pop(token_stack);
+      num1 = stack_pop(token_stack);
+
+      if (num1 == NULL) {
+        error = 1;
+        break;
+      }
+
+      if (eval_operator(num1, num2, current, num1) == 0) {
+        error = 1;
+        break;
+      }
+
+      if (stack_push(token_stack, num1) == 0) {
+        error = 1;
+        break;
+      }
+      continue;
+    }
+  }
+
+  if (error) FREE_ALL;
+
+  token_on_top = stack_pop(token_stack);
+  if (token_on_top == NULL) FREE_ALL;
+  if (stack_peek(token_stack) != NULL) FREE_ALL;
+
+  num = strtod(token_on_top->value, &endptr);
+  if (*endptr != '\0') FREE_ALL;
+
+  *result = num;
+  free(tokens_copy);
+  stack_clear(&token_stack);
+
+  return 1;
 }

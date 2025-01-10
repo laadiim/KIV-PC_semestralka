@@ -7,6 +7,7 @@
 
 int priority(Token *t)
 {
+	/* sanity check */
 	if (t == NULL) return 0;
 
 	if (t->type == TOKEN_LPARENTHESIS || t->type == TOKEN_RPARENTHESIS) return 7;
@@ -34,6 +35,7 @@ int shunting_yard(Token **token_arr, int token_count)
 	Token *postfix = NULL;
 	Token *tmp = NULL;
 
+	/* sanity check */
 	if (token_arr == NULL || *token_arr == NULL) return 0;
 	if (token_count < 1) return 0;
 

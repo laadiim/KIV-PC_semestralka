@@ -4,7 +4,7 @@
 #include "stack.h"
 
 
-stack *stack_create(uint size)
+stack *stack_create(unsigned int size)
 {
     stack *temp = NULL;
 
