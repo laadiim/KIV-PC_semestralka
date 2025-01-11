@@ -7,6 +7,6 @@
  * stores result in *result
  * returns
  * 0 if successful, 1 otherwise*/
-int postfix_eval(Token *expr, int token_count, double param, double *result);
+int postfix_eval(Expression *expr, double x, double *result);
 
 #endif 

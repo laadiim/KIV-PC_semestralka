@@ -1,8 +1,8 @@
 #include "postscript.h"
 #include <stdio.h>
 
-const double GRAPH_WIDTH = 1500;
-const double GRAPH_HEIGHT = 1100;
+const double GRAPH_WIDTH = 1400;
+const double GRAPH_HEIGHT = 1000;
 const double PAGE_WIDTH = 1600;
 const double PAGE_HEIGHT = 1200;
 const double OFFSET = 100;
@@ -72,7 +72,7 @@ int create_postscript(double *x, double *y, int length, double x_min,
   fprintf(out, "%.2f %.2f moveto (%.2f) show\n", OFFSET, OFFSET / 1.5, x_min);
 
   /* bottom right x corner label */
-  fprintf(out, "%.2f %.2f moveto (%.2f) show\n", PAGE_WIDTH - OFFSET,
+  fprintf(out, "%.2f %.2f moveto (%.2f) show\n", GRAPH_WIDTH - OFFSET / 2.0 + OFFSET,
           OFFSET / 1.5, x_max);
 
   /* bottom left y corner label */
@@ -80,12 +80,24 @@ int create_postscript(double *x, double *y, int length, double x_min,
 
   /* top left y corner label */
   fprintf(out, "%.2f %.2f moveto (%.2f) show\n", OFFSET / 7.0,
-          PAGE_HEIGHT - OFFSET / 2.0, y_max);
+          GRAPH_HEIGHT + OFFSET, y_max);
 
   fprintf(out, "%.2f %.2f moveto (x) show\n", OFFSET + GRAPH_WIDTH / 2.0,
           OFFSET / 2.0);
   fprintf(out, "%.2f %.2f moveto (f(x)) show\n", OFFSET / 2.0,
           OFFSET + GRAPH_HEIGHT / 2.0);
+
+
+	if (x_min <= 0 && x_max >= 0)
+	{
+		fprintf(out, "6 setlinewidth 0 0 1 setrgbcolor\n%.2f %.2f moveto %.2f %.2f lineto stroke\n", transform_x(0, x_min, x_max), OFFSET, transform_x(0, x_min, x_max), OFFSET + GRAPH_HEIGHT);
+		fprintf(out, "%.2f %.2f moveto (0) show\n", transform_x(0, x_min, x_max), OFFSET + GRAPH_HEIGHT + 30);
+	}
+	if (y_min <= 0 && y_max >= 0)
+	{
+		fprintf(out, "0 0 1 setrgbcolor\n%.2f %.2f moveto %.2f %.2f lineto stroke\n", OFFSET, transform_y(0, y_min, y_max), OFFSET + GRAPH_WIDTH, transform_y(0, y_min, y_max));
+		fprintf(out, "%.2f %.2f moveto (0) show\n", OFFSET + GRAPH_WIDTH + 30, transform_y(0, y_min, y_max));
+	}
 
   x_point = transform_x(x[0], x_min, x_max);
   y_point = transform_y(y[0], y_min, y_max);

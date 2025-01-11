@@ -12,7 +12,15 @@
 
 #define FREE_ALL                                                               \
   {                                                                            \
-    stack_clear(&token_stack);                                                 \
+    stack_clear(&token_stack);   \
+		for (i = 0; i < expr->len; i++) \
+		{ \
+			if (tokens_copy[i] != NULL) \
+			{ \
+				free(tokens_copy[i]); \
+				tokens_copy[i] = NULL; \
+			} \
+		} \
     free(tokens_copy);                                                         \
     tokens_copy = NULL;                                                        \
     return 1;                                                                  \
@@ -265,8 +273,8 @@ int eval_function(Token *number, Token *func, Token *result) {
   return 1;
 }
 
-int postfix_eval(Token *token_arr, int tokens_count, double x, double *result) {
-  Token *tokens_copy;
+int postfix_eval(Expression *expr, double x, double *result) {
+  Token **tokens_copy;
   stack *token_stack = NULL;
   Token *current = NULL;
 
@@ -283,28 +291,47 @@ int postfix_eval(Token *token_arr, int tokens_count, double x, double *result) {
   int i = 0;
 
   /* sanity check */
-  if (token_arr == NULL) {
+  if (expr == NULL) {
     return 0;
   }
   if (result == NULL) {
     return 0;
   }
-  if (tokens_count <= 0) {
-    return 0;
-  }
 
   *result = NOTANUMBER;
 
-  token_stack = stack_create((unsigned int)tokens_count);
+	printf("x = %f\n", x);
+  token_stack = stack_create((unsigned int)expr->len);
   if (token_stack == NULL) {
     return 0;
   }
 
-  tokens_copy = (Token *)malloc(sizeof(Token) * tokens_count);
-  memcpy(tokens_copy, token_arr, sizeof(Token) * tokens_count);
+  tokens_copy = (Token **)malloc(sizeof(Token*) * expr->len);
+	for (i = 0; i < expr->len; i++)
+	{
+		tokens_copy[i] = (Token *)(malloc(sizeof(Token)));
+		if (tokens_copy[i] == NULL) error = 1;
+		memcpy(tokens_copy[i], expr->arr[i], sizeof(Token));
+	}
 
-  for (i = 0; i < tokens_count; i++) {
-    current = &(tokens_copy[i]);
+	if (error)
+	{
+		for (i = 0; i < expr->len; i++)
+		{
+			if (tokens_copy[i] != NULL)
+			{
+				free(tokens_copy[i]);
+				tokens_copy[i] = NULL;
+			}
+		}
+		free(tokens_copy);
+		return 0;
+	}
+
+  for (i = 0; i < expr->len; i++) {
+    current = tokens_copy[i];
+		printf("curr: %s\n", current->value);
+		printf("top: %s\n", stack_peek(token_stack) != NULL ? stack_peek(token_stack)->value : "Empty");
 
     if (current->type == TOKEN_NUMBER) {
       if (stack_push(token_stack, current) == 0) {
@@ -399,6 +426,15 @@ int postfix_eval(Token *token_arr, int tokens_count, double x, double *result) {
   if (*endptr != '\0') FREE_ALL;
 
   *result = num;
+	for (i = 0; i < expr->len; i++)
+		{
+			if (tokens_copy[i] != NULL)
+			{
+				free(tokens_copy[i]);
+				tokens_copy[i] = NULL;
+			}
+		}
+
   free(tokens_copy);
   stack_clear(&token_stack);
 

@@ -9,12 +9,12 @@
 #define OPS "+-*/^"
 #define FUNCTIONS {"asin", "acos", "atan", "sinh", "cosh", "tanh", "sin",  "cos",  "tan",  "abs", "exp",  "log", "ln"}
 
-int remove_spaces(char *str) {
+int remove_spaces_replace_commas(char *str) {
   int i = 0, j = 0;
 
   /* sanity check */
   if (str == NULL)
-    return 1;
+    return 0;
 
   while (str[i] != '\0') /* Traverse the string */
   {
@@ -30,56 +30,9 @@ int remove_spaces(char *str) {
   }
 
   str[j] = '\0'; /* Null-terminate the string */
-  return 0;
+  return j;
 }
 
-char *prepare(char **expr, int size, int limits) {
-  int len = 0;
-  int i = 0;
-  char *concat = NULL;
-
-	/* sanity check */
-	if (expr == NULL || *expr == NULL || size == 0 || limits > 1 || limits < 0) return NULL;
-
-  /* Calculate the total length of the concatenated string */
-  for (i = 1; i < size - limits - 1; i++) {
-    len += strlen(expr[i]);
-  }
-
-  /* Allocate memory for the concatenated string (+1 for null terminator) */
-  concat = (char *)malloc(sizeof(char) * (len + 1));
-  if (concat == NULL) {
-    printf("Memory allocation failed in prepare.\n");
-    return NULL;
-  }
-
-  /* Initialize the string to prevent undefined behavior in strcat */
-  concat[0] = '\0';
-
-  /* Concatenate all the strings into `concat` */
-  for (i = 1; i < size - limits - 1; i++) {
-    strcat(concat, expr[i]);
-  }
-
-  printf("Before removing spaces: %s\n", concat);
-
-  /* Remove spaces and replace commas with dots */
-  if (remove_spaces(concat) != 0) {
-    printf("Error removing spaces from the string.\n");
-    free(concat);
-    return NULL;
-  }
-
-  printf("After removing spaces: %s\n", concat);
-
-  /* Debug output to print ASCII values of the characters */
-  len = strlen(concat);
-  for (i = 0; i < len; i++) {
-    printf("ASCII of '%c': %d\n", concat[i], concat[i]);
-  }
-
-  return concat;
-}
 
 int is_var(char *p) { return *p == VAR; }
 
@@ -169,126 +122,147 @@ int is_function(char *str) {
   return 0; /* Return 0 if no match is found */
 }
 
+void free_expression(Expression **expr)
+{
+	int i = 0;
+	if (expr == NULL || *expr == NULL) return;
+	for (i = 0; i < (*expr)->len; i++) {
+		free((*expr)->arr[i]);
+		(*expr)->arr[i] = NULL;
+	}
+	free((*expr)->arr);
+	(*expr)->arr = NULL;
+	free(*expr);
+	expr = NULL;
+}
+
 /* returns count of tokens if positive, error code if negative */
-int tokenize(char *expr[], int size, int limits, Token **result) {
+Expression *tokenize(char *expr) {
   int unknown = 0;
   int free_index = 0;
-  char *concat = prepare(expr, size, limits);
   char *p;
   int func_len = 0;
   int num_len = 0;
   int i = 0;
+	int len = 0;
+	Token **array = NULL;
+	Token *curr = NULL;
+	Expression *result = NULL;
 
-  if (concat == NULL) {
-    printf("Error in preparing the input expression.\n");
-    return -1;
-  }
+	len = remove_spaces_replace_commas(expr);
+	if (!len)
+	{
+		printf("Error while removing spaces!\n");
+		return NULL;
+	}
 
+  p = expr;
+  printf("tokenize...%s\n", expr);
 
-  p = concat;
-  printf("tokenize...%s\n", concat);
-
-  *result = (Token *)malloc(sizeof(Token) *
-                            MAX_TOKENS); /* Use a safe upper limit for tokens */
-  if (*result == NULL) {
+  array = (Token **)malloc(sizeof(Token *) * strlen(expr));
+  if (array == NULL) {
     printf("Memory allocation failed for tokens.\n");
-    free(concat);
-    return -1;
+    return NULL;
   }
-
-  printf("size of **result %lu * %lu = %lu\n", sizeof(Token), strlen(concat),
-         sizeof(**result));
 
   while (*p != '\0') {
-    printf("character - %c - position - %d\n", *p, free_index);
     func_len = is_function(p);
     num_len = is_number(p);
-    printf("remaining: %s\n", p);
+
+		curr = (Token *)(malloc(sizeof(Token)));
+		if (curr == NULL)
+		{
+			free(array);
+			printf("Error at char %c\n", *p);
+			return NULL;
+		}
 
     if (is_var(p)) {
       printf("Variable\n");
-      (*result)[free_index].type = TOKEN_VARIABLE;
-      (*result)[free_index].value[0] = *p;   /* Assign the variable character */
-      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+      curr->type = TOKEN_VARIABLE;
+      curr->value[0] = *p;   /* Assign the variable character */
+      curr->value[1] = '\0'; /* Null-terminate the value */
       p++;
-      free_index++;
 
     } else if (*p == '(') {
       printf("Parenthesis\n");
-      (*result)[free_index].type = TOKEN_LPARENTHESIS;
-      (*result)[free_index].value[0] = *p;   /* Assign the variable character */
-      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+      curr->type = TOKEN_LPARENTHESIS;
+      curr->value[0] = *p;   /* Assign the variable character */
+      curr->value[1] = '\0'; /* Null-terminate the value */
       p++;
-      free_index++;
 
     } else if (*p == ')') {
       printf("Parenthesis\n");
-      (*result)[free_index].type = TOKEN_RPARENTHESIS;
-      (*result)[free_index].value[0] = *p;   /* Assign the variable character */
-      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+      curr->type = TOKEN_RPARENTHESIS;
+      curr->value[0] = *p;   /* Assign the variable character */
+      curr->value[1] = '\0'; /* Null-terminate the value */
       p++;
-      free_index++;
 
     } else if (is_operator(p)) {
       printf("Operator\n");
       if (free_index == 0 && *p == '-') {
-        (*result)[free_index].type = TOKEN_UNARY_OPERATOR;
+        curr->type = TOKEN_UNARY_OPERATOR;
 
-      } else if (is_unary_minus(p, &(*result)[free_index - 1])) {
-        (*result)[free_index].type = TOKEN_UNARY_OPERATOR;
+    } else if (is_unary_minus(p, array[free_index - 1])) {
+        curr->type = TOKEN_UNARY_OPERATOR;
       
 			} else {
-        (*result)[free_index].type = TOKEN_BINARY_OPERATOR;
+        curr->type = TOKEN_BINARY_OPERATOR;
       }
       
-			(*result)[free_index].value[0] = *p;   /* Assign the operator character */
-      (*result)[free_index].value[1] = '\0'; /* Null-terminate the value */
+			curr->value[0] = *p;   /* Assign the operator character */
+      curr->value[1] = '\0'; /* Null-terminate the value */
       p++;
-      free_index++;
     
 		} else if (func_len) {
       printf("Function len %d\n", func_len);
-      (*result)[free_index].type = TOKEN_FUNCTION;
+      curr->type = TOKEN_FUNCTION;
       for (i = 0; i < func_len; i++) {
-        (*result)[free_index].value[i] = *p;
+        curr->value[i] = *p;
         p++;
       }
-      (*result)[free_index].value[func_len] =
+      curr->value[func_len] =
           '\0'; /* Null-terminate the function name */
-      free_index++;
 		
 		} else if (num_len) {
       printf("Number len %d\n", num_len);
-      (*result)[free_index].type = TOKEN_NUMBER;
+      curr->type = TOKEN_NUMBER;
       
 			for (i = 0; i < num_len; i++) {
-        (*result)[free_index].value[i] = *p;
+        curr->value[i] = *p;
         p++;
       }
     
-			(*result)[free_index].value[num_len] =
+			curr->value[num_len] =
           '\0'; /* Null-terminate the number */
-      free_index++;
     
 		} else {
       printf("Unknown token: %c\n", *p);
-      unknown++;
-      p++;
+			free(curr);
+			free(array);
+			return NULL;
     }
+		printf("%d, %s\n", curr->type, curr->value);
+		array[free_index] = curr;
+		printf("%d, %s\n", array[free_index]->type, array[free_index]->value);
+		free_index++;
   }
 
-  free(concat);
+	result = (Expression *)(malloc(sizeof(Expression)));
+	if (result == NULL)
+	{
+		printf("Error while allocating memory.\n");
+		for (i = 0; i < free_index; i++)
+		{
+			free(array[i]);
+		}
+		free(array);
+		return NULL;
+	}
 
-  if (unknown) {
-    printf("Unknown tokens encountered: %d\n", unknown);
-    return -1;
-  }
 
-  printf("Total tokens: %d\n", free_index);
-  for (i = 0; i < free_index; i++) {
-    printf("Token %d: Type = %d, Value = %s\n", i, (*result)[i].type,
-           (*result)[i].value);
-  }
+	result->arr = array;
+	result->len = free_index;
 
-  return free_index;
+  return result;
 }
