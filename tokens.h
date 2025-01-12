@@ -1,7 +1,7 @@
 #ifndef tokens
 #define tokens
  
-/* Enumeration for different token types */
+/* enumeration for different token types */
 typedef enum {
     TOKEN_NUMBER,    /* Numeric constants (e.g., 3.14, 42) */
     TOKEN_VARIABLE,  /* Variable (e.g., 'x') */
@@ -13,33 +13,42 @@ typedef enum {
     TOKEN_UNKNOWN    /* Any unrecognized token */
 } TokenType;
 
-/* Structure to represent a token */
+/* structure to represent a token */
 typedef struct {
     TokenType type;    /* Type of the token */
     char value[32];    /* String value of the token (e.g., "3.14", "sin") */
 } Token;
 
+/* structure to represent an expression */
 typedef struct {
-		Token **arr;
-		int len;
+		Token **arr; /* array of token */
+		int len; /* number of tokens in the expression */
 } Expression;
 
-/* Saves tokenized expression at result
- * returns
- * number of tokens if succesfull, -1 otherwise */
+/**
+ * @brief Breaks up the string into tokens
+ *
+ * @param expr String of an expression
+ *
+ * @return Pointer to an Expression struct with tokenized expression, NULL if an error occured
+ */
 Expression *tokenize(char *expr);
 
-/* removes spaces and changes commas to periods 
- * changes string in place
- * returns
- * 0 if succesful, 1 otherwise*/
-int remove_spaces(char *str);
+/**
+ * @brief Removes spaces from the string and repaces commas for dots
+ *
+ * @param str String to process
+ *
+ * @return 1 if everything was OK, 0 if an error occured
+ */
+int remove_spaces_replace_commas(char *str);
 
-/* prepares expression for processing 
- * returns
- * prepared string if successful, NULL othervise */
-char *prepare(char **expr, int size, int limits);
 
+/**
+ * @brief Frees memory allocated for an Expression
+ *
+ * @param expr Expression
+ */
 void free_expression(Expression **expr);
 
 #endif

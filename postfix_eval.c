@@ -286,8 +286,6 @@ int postfix_eval(Expression *expr, double x, double *result) {
 
   double num = 0;
   int error = 0;
-  int wrong_func_output = 0;
-  int wrong_op_output = 0;
   int i = 0;
 
   /* sanity check */
@@ -300,7 +298,6 @@ int postfix_eval(Expression *expr, double x, double *result) {
 
   *result = NOTANUMBER;
 
-	printf("x = %f\n", x);
   token_stack = stack_create((unsigned int)expr->len);
   if (token_stack == NULL) {
     return 0;
@@ -330,8 +327,6 @@ int postfix_eval(Expression *expr, double x, double *result) {
 
   for (i = 0; i < expr->len; i++) {
     current = tokens_copy[i];
-		printf("curr: %s\n", current->value);
-		printf("top: %s\n", stack_peek(token_stack) != NULL ? stack_peek(token_stack)->value : "Empty");
 
     if (current->type == TOKEN_NUMBER) {
       if (stack_push(token_stack, current) == 0) {

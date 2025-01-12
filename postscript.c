@@ -30,18 +30,13 @@ int create_postscript(double *x, double *y, int length, double x_min,
   double x_point, y_point;
   double x_tick_length = GRAPH_WIDTH;
   double y_tick_length = GRAPH_HEIGHT;
-  double len_x = (x_max - x_min) / 10.0;
-  double len_y = (y_max - y_min) / 10.0;
-  double label_scale = 0;
   double x_tick, y_tick;
-  double modif_scale_x = 0;
-  double modif_scale_y = 0;
 
   /* Open the output file */
   out = fopen(outpath, "w");
   if (out == NULL) {
     perror("Could not output file.");
-    return 1;
+    return 0;
   }
 
   /* file header */
@@ -112,28 +107,33 @@ int create_postscript(double *x, double *y, int length, double x_min,
     x_next = transform_x(x[i], x_min, x_max);
     y_next = transform_y(y[i], y_min, y_max);
 
-    if (y_next > PAGE_HEIGHT || y_next < OFFSET || y_point > PAGE_HEIGHT ||
+    if (y_next > GRAPH_HEIGHT + OFFSET || y_next < OFFSET || y_point > GRAPH_HEIGHT + OFFSET ||
         y_point < OFFSET) {
       a = (y_next - y_point) / (x_next - x_point);
       b = y_point - a * x_point;
-      if (y_next > PAGE_HEIGHT && y_point < PAGE_HEIGHT && y_point > OFFSET) {
-        fprintf(out, "%.2f %.2f lineto %.2f %.2f moveto\n",
-                (PAGE_HEIGHT - b) / a, PAGE_HEIGHT, x_next, y_next);
-      } else if (y_next < OFFSET && y_point < PAGE_HEIGHT && y_point > OFFSET) {
-        fprintf(out, "%.2f %.2f lineto %.2f %.2f moveto\n", (OFFSET - b) / a,
-                OFFSET, x_next, y_next);
-      } else if (y_point > PAGE_HEIGHT && y_next < PAGE_HEIGHT &&
-                 y_next > OFFSET) {
-        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto\n",
-                (PAGE_HEIGHT - b) / a, PAGE_HEIGHT, x_next, y_next);
-      } else if (y_point < OFFSET && y_next < PAGE_HEIGHT && y_next > OFFSET) {
-        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto\n", (OFFSET - b) / a,
-                OFFSET, x_next, y_next);
-      } else {
+      if (y_next > GRAPH_HEIGHT + OFFSET && y_point < GRAPH_HEIGHT + OFFSET && y_point > OFFSET) 
+			{
+        fprintf(out, "%.2f %.2f lineto %.2f %.2f moveto\n", (GRAPH_HEIGHT + OFFSET - b) / a, GRAPH_HEIGHT + OFFSET, x_next, y_next);
+      } 
+			else if (y_next < OFFSET && y_point < GRAPH_HEIGHT + OFFSET && y_point > OFFSET) 
+			{
+        fprintf(out, "%.2f %.2f lineto %.2f %.2f moveto\n", (OFFSET - b) / a, OFFSET, x_next, y_next);
+      } 
+			else if (y_point > GRAPH_HEIGHT + OFFSET && y_next < GRAPH_HEIGHT + OFFSET && y_next > OFFSET) 
+			{
+        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto\n", (GRAPH_HEIGHT + OFFSET - b) / a, GRAPH_HEIGHT + OFFSET, x_next, y_next);
+      }
+			else if (y_point < OFFSET && y_next < GRAPH_HEIGHT + OFFSET && y_next > OFFSET)
+			{
+        fprintf(out, "%.2f %.2f moveto %.2f %.2f lineto\n", (OFFSET - b) / a, OFFSET, x_next, y_next);
+      }
+			else 
+			{
         fprintf(out, "%.2f %.2f moveto\n", x_next, y_next);
       }
 
-    } else {
+    } 
+		else {
       fprintf(out, "%.2f %.2f lineto\n", x_next, y_next);
     }
 
@@ -148,5 +148,5 @@ int create_postscript(double *x, double *y, int length, double x_min,
   fprintf(out, "showpage\n");
   fclose(out);
 
-  return 0;
+  return 1;
 }

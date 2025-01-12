@@ -138,7 +138,6 @@ void free_expression(Expression **expr)
 
 /* returns count of tokens if positive, error code if negative */
 Expression *tokenize(char *expr) {
-  int unknown = 0;
   int free_index = 0;
   char *p;
   int func_len = 0;

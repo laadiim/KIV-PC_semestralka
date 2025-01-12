@@ -29,7 +29,7 @@ int priority(Token *t)
 
 int shunting_yard(Expression *exp)
 {
-	int i, j, postfix_ptr = 0, p;
+	int i, postfix_ptr = 0, p;
 	int e = 0;
 	stack *token_stack = NULL;
 	Token **postfix = NULL;
